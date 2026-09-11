@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { GameState, DEFAULT_GAME_CONFIG, GameConfig, ComboState } from '../types/game';
 import { Player } from '../types/player';
-import { LOBBY_PLAYERS, rankPlayers, simulateOpponentScoreUpdate } from '../data/mockPlayers';
+import { rankPlayers } from '../data/mockPlayers';
 
 export interface GameResultSummary {
   score: number;
@@ -18,7 +18,6 @@ interface GameStore {
 
   // Player state
   currentPlayer: Player;
-  players: Player[];
   leaderboardPlayers: Player[];
   lastGameResult: GameResultSummary | null;
 
@@ -53,11 +52,11 @@ interface GameStore {
   setCurrentPlayer: (player: Player) => void;
   setPlayerName: (name: string, avatar?: string) => void;
   clearPlayer: () => void;
-  updatePlayerScore: (playerId: string, score: number) => void;
-  updateOpponentScores: (elapsedSeconds: number) => void;
-  recalculateRanks: () => void;
   checkExistingPlayer: (name: string) => { exists: boolean; highestScore?: number; avatar?: string };
   getPlayerBestScore: (name: string) => number;
+  addLeaderboardPlayer: (name: string, score: number, avatar?: string) => void;
+  removeLeaderboardPlayer: (playerId: string) => void;
+  clearLeaderboard: () => void;
 
   // Actions - Misc
   addScrollDistance: (distance: number) => void;
@@ -72,7 +71,7 @@ const initialCombo: ComboState = {
 };
 
 const defaultPlayer: Player = {
-  id: 'player-1',
+  id: 'player-current',
   name: '',
   score: 0,
   rank: 1,
@@ -84,40 +83,68 @@ const getStoredPlayer = (): Player => {
   try {
     const saved = localStorage.getItem('doom_current_player');
     if (saved) {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed.name === 'string') {
+        return parsed;
+      }
     }
   } catch (e) {}
   return defaultPlayer;
 };
 
 /**
- * Filter out any legacy dummy players from older localStorage builds.
+ * List of known dummy / mock names from previous templates that must be purged.
  */
-const LEGACY_DUMMY_NAMES = [
+const ALL_DUMMY_NAMES = [
+  'rahul',
+  'sarah',
+  'alex',
+  'priya',
+  'jordan',
+  'mika',
+  'bot rahul',
+  'bot sarah',
+  'bot alex',
+  'bot priya',
   'proscroller',
   'memelord',
   'bedrotter',
   'nightowl',
   'speedswiper',
-  'bot rahul',
-  'bot sarah',
-  'bot alex',
   'scrollmaster',
+  'the final scroll boss',
+  'phone zombie',
+  'anonymous scroller',
 ];
 
+/**
+ * Reads leaderboard from localStorage and aggressively purges any dummy/mock records.
+ */
 const getStoredLeaderboard = (): Player[] => {
   try {
     const saved = localStorage.getItem('doom_leaderboard');
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) {
-        // Filter out dummy players so board has only real human games
+        // Keep ONLY real players actually added by the user
         const cleanList = parsed.filter((p) => {
           if (!p || !p.name || typeof p.name !== 'string') return false;
           const norm = p.name.trim().toLowerCase();
-          return norm.length > 0 && !LEGACY_DUMMY_NAMES.includes(norm);
+          if (norm.length === 0) return false;
+
+          // Discard any dummy names
+          if (ALL_DUMMY_NAMES.includes(norm)) return false;
+
+          // Discard old mock IDs '1', '2', '3', '4', '5', '6', '7'
+          if (/^[0-9]+$/.test(String(p.id))) return false;
+
+          return true;
         });
-        return rankPlayers(cleanList);
+
+        const ranked = rankPlayers(cleanList);
+        // Persist the clean list back immediately so dummy data is removed permanently
+        saveLeaderboard(ranked);
+        return ranked;
       }
     }
   } catch (e) {}
@@ -182,7 +209,7 @@ function upsertLeaderboard(
     isNewHighScore = true;
     previousHighScore = 0;
     const newEntry: Player = {
-      id: `lb-${Date.now()}`,
+      id: `lb-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       name: trimmedName,
       score,
       rank: 0,
@@ -208,7 +235,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
   gameConfig: DEFAULT_GAME_CONFIG,
   timeRemaining: DEFAULT_GAME_CONFIG.duration,
   currentPlayer: initialPlayer,
-  players: LOBBY_PLAYERS.map((p) => ({ ...p, score: 0 })),
   leaderboardPlayers: initialLeaderboard,
   lastGameResult: null,
   score: 0,
@@ -223,36 +249,40 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setGameState: (state) => set({ gameState: state }),
 
   startGame: () => {
-    const { gameConfig, currentPlayer } = get();
+    const { gameConfig, leaderboardPlayers, currentPlayer } = get();
+    // Calculate live rank against real players on the leaderboard
+    const otherRealPlayers = leaderboardPlayers.filter(
+      (p) => p.name.trim().toLowerCase() !== currentPlayer.name.trim().toLowerCase()
+    );
+    const initialRank = otherRealPlayers.length + 1;
+
     set({
       gameState: GameState.PLAYING,
       timeRemaining: gameConfig.duration,
       score: 0,
       combo: { ...initialCombo },
-      rank: 1,
+      rank: initialRank,
       totalScrollDistance: 0,
       totalLikes: 0,
       totalInteractions: 0,
       lastGameResult: null,
-      players: LOBBY_PLAYERS.map((p) =>
-        p.id === currentPlayer.id || p.isCurrentPlayer
-          ? { ...p, name: currentPlayer.name || 'Anonymous Scroller', avatar: currentPlayer.avatar, score: 0, isCurrentPlayer: true }
-          : { ...p, score: 0 }
-      ),
       isPaused: false,
     });
   },
 
   endGame: () => {
-    const { score, players, currentPlayer, leaderboardPlayers } = get();
-    const updatedPlayers = players.map((p) =>
-      p.id === currentPlayer.id || p.isCurrentPlayer ? { ...p, score } : p
-    );
-    const rankedInGame = rankPlayers(updatedPlayers);
-    const playerRankInGame = rankedInGame.find((p) => p.isCurrentPlayer)?.rank ?? 1;
+    const { score, currentPlayer, leaderboardPlayers } = get();
+    const playerName = currentPlayer.name.trim();
+
+    if (!playerName) {
+      set({
+        gameState: GameState.FINISHED,
+        combo: { ...initialCombo },
+      });
+      return;
+    }
 
     // Leaderboard persistence: unique by name, keep highest score
-    const playerName = currentPlayer.name.trim() || 'Anonymous Scroller';
     const { updatedBoard, isNewHighScore, previousHighScore } = upsertLeaderboard(
       leaderboardPlayers,
       playerName,
@@ -262,13 +292,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     saveLeaderboard(updatedBoard);
 
     // Find rank in the all-time persistent leaderboard
-    const allTimeRank = updatedBoard.find((p) => p.name.toLowerCase() === playerName.toLowerCase())?.rank ?? playerRankInGame;
+    const allTimeRank =
+      updatedBoard.find((p) => p.name.toLowerCase() === playerName.toLowerCase())?.rank ?? 1;
 
     set({
       gameState: GameState.FINISHED,
-      players: rankedInGame,
       leaderboardPlayers: updatedBoard,
-      rank: playerRankInGame,
+      rank: allTimeRank,
       combo: { ...initialCombo },
       lastGameResult: {
         score,
@@ -290,7 +320,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   resetGame: () => {
-    const { gameConfig, currentPlayer } = get();
+    const { gameConfig } = get();
     set({
       gameState: GameState.IDLE,
       timeRemaining: gameConfig.duration,
@@ -300,51 +330,52 @@ export const useGameStore = create<GameStore>((set, get) => ({
       totalScrollDistance: 0,
       totalLikes: 0,
       totalInteractions: 0,
-      players: LOBBY_PLAYERS.map((p) =>
-        p.id === currentPlayer.id || p.isCurrentPlayer
-          ? { ...p, name: currentPlayer.name, avatar: currentPlayer.avatar, score: 0, isCurrentPlayer: true }
-          : { ...p, score: 0 }
-      ),
       isPaused: false,
     });
   },
 
   // Scoring
   addPoints: (points) => {
-    const { score, combo } = get();
+    const { score, combo, leaderboardPlayers, currentPlayer } = get();
     const multiplier = combo.isActive ? combo.multiplier : 1;
     const finalPoints = Math.floor(points * multiplier);
-    set({ score: score + finalPoints });
+    const newScore = score + finalPoints;
+
+    // Calculate real live rank against other players in the leaderboard
+    const otherRealPlayers = leaderboardPlayers.filter(
+      (p) => p.name.trim().toLowerCase() !== currentPlayer.name.trim().toLowerCase()
+    );
+    const liveRank = otherRealPlayers.filter((p) => p.score > newScore).length + 1;
+
+    set({ score: newScore, rank: liveRank });
   },
 
   addScrollPoints: () => {
     const { score, combo, totalScrollDistance } = get();
     const points = Math.floor(10 * (combo.isActive ? combo.multiplier : 1));
     get().incrementCombo();
-    set({
-      score: score + points,
-      totalScrollDistance: totalScrollDistance + 1,
-    });
+    get().addPoints(points);
+    set({ totalScrollDistance: totalScrollDistance + 1 });
   },
 
   addLikePoints: () => {
-    const { score, combo, totalLikes } = get();
+    const { combo, totalLikes } = get();
     const points = Math.floor(50 * (combo.isActive ? combo.multiplier : 1));
     get().incrementCombo();
+    get().addPoints(points);
     set({
-      score: score + points,
       totalLikes: totalLikes + 1,
       totalInteractions: get().totalInteractions + 1,
     });
   },
 
   addBonusPoints: (multiplier) => {
-    const { score, combo } = get();
+    const { combo } = get();
     const base = 100;
     const points = Math.floor(base * multiplier * (combo.isActive ? combo.multiplier : 1));
     get().incrementCombo();
+    get().addPoints(points);
     set({
-      score: score + points,
       totalInteractions: get().totalInteractions + 1,
     });
   },
@@ -406,51 +437,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   setPlayerName: (name: string, avatar?: string) => {
-    const { currentPlayer, players } = get();
+    const { currentPlayer } = get();
     const cleanName = name.trim();
     const updatedPlayer = {
       ...currentPlayer,
       name: cleanName,
       avatar: avatar || currentPlayer.avatar,
     };
-    const updatedPlayers = players.map((p) =>
-      p.id === currentPlayer.id || p.isCurrentPlayer
-        ? { ...p, name: cleanName, avatar: updatedPlayer.avatar, isCurrentPlayer: true }
-        : p
-    );
     try {
       localStorage.setItem('doom_current_player', JSON.stringify(updatedPlayer));
     } catch (e) {}
-    set({
-      currentPlayer: updatedPlayer,
-      players: updatedPlayers,
-    });
-  },
-
-  updatePlayerScore: (playerId, score) => {
-    const { players } = get();
-    const updated = players.map((p) =>
-      p.id === playerId ? { ...p, score } : p
-    );
-    set({ players: updated });
-  },
-
-  updateOpponentScores: (elapsedSeconds) => {
-    const { players, currentPlayer, score } = get();
-    const withCurrentScore = players.map((p) =>
-      p.id === currentPlayer.id || p.isCurrentPlayer ? { ...p, score } : p
-    );
-    const updated = simulateOpponentScoreUpdate(withCurrentScore, currentPlayer.id, elapsedSeconds);
-    const ranked = rankPlayers(updated);
-    const playerRank = ranked.find((p) => p.isCurrentPlayer)?.rank ?? 1;
-    set({ players: ranked, rank: playerRank });
-  },
-
-  recalculateRanks: () => {
-    const { players } = get();
-    const ranked = rankPlayers(players);
-    const playerRank = ranked.find((p) => p.isCurrentPlayer)?.rank ?? 1;
-    set({ players: ranked, rank: playerRank });
+    set({ currentPlayer: updatedPlayer });
   },
 
   checkExistingPlayer: (name: string) => {
@@ -468,6 +465,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!clean) return 0;
     const found = get().leaderboardPlayers.find((p) => p.name.trim().toLowerCase() === clean);
     return found ? found.score : 0;
+  },
+
+  addLeaderboardPlayer: (name: string, score: number, avatar = '😎') => {
+    const { leaderboardPlayers } = get();
+    const { updatedBoard } = upsertLeaderboard(leaderboardPlayers, name, score, avatar);
+    saveLeaderboard(updatedBoard);
+    set({ leaderboardPlayers: updatedBoard });
+  },
+
+  removeLeaderboardPlayer: (playerId: string) => {
+    const { leaderboardPlayers } = get();
+    const filtered = leaderboardPlayers.filter((p) => p.id !== playerId);
+    const ranked = rankPlayers(filtered);
+    saveLeaderboard(ranked);
+    set({ leaderboardPlayers: ranked });
+  },
+
+  clearLeaderboard: () => {
+    saveLeaderboard([]);
+    set({ leaderboardPlayers: [] });
   },
 
   // Misc

@@ -1,19 +1,34 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/gameStore';
 import { AppNavbar } from '../components/layout/AppNavbar';
 import { Button } from '../components/ui/Button';
-import { Trophy, Play, Sparkles, UserPlus } from 'lucide-react';
+import { Trophy, Play, UserPlus, Trash2, RotateCcw, Plus, X, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { PlayerNameModal } from '../components/ui/PlayerNameModal';
 
+const AVATARS = ['😎', '😴', '🧟‍♀️', '🤳', '🤡', '💀', '🫠', '🤖', '👽', '🦊', '🐱', '🤪', '⚡', '🔥', '👑'];
+
 export function LeaderboardPage() {
   const navigate = useNavigate();
-  const { leaderboardPlayers, currentPlayer } = useGameStore();
+  const {
+    leaderboardPlayers,
+    currentPlayer,
+    removeLeaderboardPlayer,
+    clearLeaderboard,
+    addLeaderboardPlayer,
+  } = useGameStore();
+
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
+  const [isAddPlayerModalOpen, setIsAddPlayerModalOpen] = useState(false);
+
+  // Form state for adding player manually
+  const [newPlayerName, setNewPlayerName] = useState('');
+  const [newPlayerAvatar, setNewPlayerAvatar] = useState('😎');
+  const [newPlayerScore, setNewPlayerScore] = useState('');
+  const [addError, setAddError] = useState('');
 
   const top3 = leaderboardPlayers.slice(0, 3);
-  const rest = leaderboardPlayers.slice(3);
   const isEmpty = leaderboardPlayers.length === 0;
 
   const handlePlay = () => {
@@ -24,6 +39,32 @@ export function LeaderboardPage() {
     navigate('/lobby');
   };
 
+  const handleAddPlayerSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = newPlayerName.trim();
+    if (!trimmed) {
+      setAddError('Please enter a player name.');
+      return;
+    }
+    const scoreNum = parseInt(newPlayerScore, 10);
+    if (isNaN(scoreNum) || scoreNum < 0) {
+      setAddError('Please enter a valid positive score.');
+      return;
+    }
+
+    addLeaderboardPlayer(trimmed, scoreNum, newPlayerAvatar);
+    setNewPlayerName('');
+    setNewPlayerScore('');
+    setAddError('');
+    setIsAddPlayerModalOpen(false);
+  };
+
+  const handleClearAll = () => {
+    if (window.confirm('Are you sure you want to clear all players from the leaderboard?')) {
+      clearLeaderboard();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#131f24] text-white flex flex-col">
       <AppNavbar />
@@ -32,14 +73,45 @@ export function LeaderboardPage() {
         {/* Header Title */}
         <div className="text-center mb-6">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ffc800]/20 border border-[#ffc800]/40 text-[#ffc800] text-xs font-black uppercase tracking-widest mb-2">
-            <Trophy size={14} /> GLOBAL LEADERBOARD
+            <Trophy size={14} /> OFFICIAL LEADERBOARD
           </span>
           <h1 className="font-display font-black text-3xl sm:text-5xl text-white tracking-tight">
             DOOM SCROLL LEAGUE
           </h1>
           <p className="text-xs sm:text-sm text-white/60 max-w-md mx-auto mt-1">
-            Real players only. Unique names with their all-time personal best scores.
+            Exclusively real players added by you. No dummy bots or fake accounts.
           </p>
+
+          {/* Quick Action Bar */}
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <Button
+              variant="cta"
+              size="sm"
+              onClick={handlePlay}
+              icon={<Play size={14} />}
+            >
+              PLAY MATCH 🚀
+            </Button>
+
+            <button
+              onClick={() => setIsAddPlayerModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#1cb0f6]/15 hover:bg-[#1cb0f6]/30 text-[#1cb0f6] border border-[#1cb0f6]/40 text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+            >
+              <Plus size={14} />
+              <span>ADD PLAYER</span>
+            </button>
+
+            {!isEmpty && (
+              <button
+                onClick={handleClearAll}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ff4b4b]/10 hover:bg-[#ff4b4b]/20 text-[#ff4b4b] border border-[#ff4b4b]/30 text-xs font-black uppercase tracking-wider transition-all cursor-pointer"
+                title="Clear all players from the leaderboard"
+              >
+                <Trash2 size={13} />
+                <span>CLEAR ALL</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Empty State */}
@@ -53,24 +125,35 @@ export function LeaderboardPage() {
               🏆
             </div>
             <h2 className="font-display font-black text-2xl text-white mb-2">
-              NO CHAMPIONS YET!
+              NO PLAYERS ADDED YET!
             </h2>
             <p className="text-sm text-white/60 mb-6 leading-relaxed">
-              The scoreboard is completely fresh. No dummy bots allowed here! Play a match right now to claim the #1 spot.
+              All dummy bots have been removed! The leaderboard is completely clean and waiting for real scores.
             </p>
-            <Button
-              variant="cta"
-              size="lg"
-              fullWidth
-              onClick={handlePlay}
-              icon={<Play size={20} />}
-            >
-              PLAY YOUR FIRST MATCH 🚀
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button
+                variant="cta"
+                size="lg"
+                onClick={handlePlay}
+                icon={<Play size={18} />}
+                className="flex-1"
+              >
+                PLAY FIRST MATCH 🚀
+              </Button>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => setIsAddPlayerModalOpen(true)}
+                icon={<Plus size={18} />}
+                className="flex-1"
+              >
+                ADD PLAYER ➕
+              </Button>
+            </div>
           </motion.div>
         ) : (
           <div className="space-y-6">
-            {/* Top 3 Podium (Duolingo League Style) */}
+            {/* Top 3 Podium */}
             <div className="flex items-end justify-center gap-2 sm:gap-4 md:gap-6 pt-4 pb-2">
               {/* 🥈 2nd Place */}
               {top3[1] ? (
@@ -154,7 +237,7 @@ export function LeaderboardPage() {
             <div className="bg-[#1b2b34] border-2 border-[#2b3e4a] rounded-3xl overflow-hidden shadow-md">
               <div className="px-4 py-3 bg-[#131f24]/50 border-b-2 border-[#2b3e4a] flex items-center justify-between text-xs font-black uppercase tracking-wider text-white/50">
                 <span>RANK &amp; ATHLETE</span>
-                <span>HIGH SCORE</span>
+                <span>SCORE &amp; ACTION</span>
               </div>
 
               <div className="divide-y divide-[#2b3e4a]">
@@ -172,9 +255,9 @@ export function LeaderboardPage() {
                           : 'hover:bg-white/[0.02]'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <span
-                          className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black ${
+                          className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black shrink-0 ${
                             player.rank === 1
                               ? 'bg-[#ffc800] text-[#131f24]'
                               : player.rank === 2
@@ -186,14 +269,14 @@ export function LeaderboardPage() {
                         >
                           #{player.rank}
                         </span>
-                        <span className="text-2xl">{player.avatar}</span>
-                        <div>
+                        <span className="text-2xl shrink-0">{player.avatar}</span>
+                        <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="font-display font-black text-sm text-white">
+                            <span className="font-display font-black text-sm text-white truncate">
                               {player.name}
                             </span>
                             {isCurrent && (
-                              <span className="px-2 py-0.5 rounded-full bg-[#58cc02] text-white text-[10px] font-black uppercase tracking-wider">
+                              <span className="px-2 py-0.5 rounded-full bg-[#58cc02] text-white text-[10px] font-black uppercase tracking-wider shrink-0">
                                 YOU
                               </span>
                             )}
@@ -201,33 +284,143 @@ export function LeaderboardPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1 text-right">
-                        <span className="font-display font-black text-sm sm:text-base text-[#ffc800]">
-                          {player.score.toLocaleString()}
-                        </span>
-                        <span className="text-[10px] font-bold text-white/40">PTS</span>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="text-right">
+                          <span className="font-display font-black text-sm sm:text-base text-[#ffc800]">
+                            {player.score.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] font-bold text-white/40 ml-1">PTS</span>
+                        </div>
+
+                        {/* Remove player button */}
+                        <button
+                          onClick={() => removeLeaderboardPlayer(player.id)}
+                          className="p-1.5 rounded-lg text-white/30 hover:text-[#ff4b4b] hover:bg-[#ff4b4b]/10 transition-colors cursor-pointer"
+                          title={`Remove ${player.name} from leaderboard`}
+                        >
+                          <Trash2 size={15} />
+                        </button>
                       </div>
                     </div>
                   );
                 })}
               </div>
             </div>
-
-            {/* Play CTA below list */}
-            <div className="pt-2 flex justify-center">
-              <Button
-                variant="cta"
-                size="lg"
-                onClick={handlePlay}
-                icon={<Play size={20} />}
-                className="w-full sm:w-auto px-10"
-              >
-                PLAY &amp; BEAT HIGHEST SCORE 🚀
-              </Button>
-            </div>
           </div>
         )}
       </main>
+
+      {/* Manual Add Player Modal */}
+      <AnimatePresence>
+        {isAddPlayerModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAddPlayerModalOpen(false)}
+            />
+
+            <motion.div
+              className="relative w-full max-w-md bg-[#1b2b34] border-2 border-[#2b3e4a] rounded-3xl p-6 shadow-2xl z-10"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            >
+              <button
+                onClick={() => setIsAddPlayerModalOpen(false)}
+                className="absolute top-4 right-4 text-white/40 hover:text-white p-1.5 rounded-full hover:bg-white/10"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="text-center mb-5">
+                <span className="text-[11px] font-black uppercase tracking-widest bg-[#1cb0f6]/20 text-[#1cb0f6] px-3 py-1 rounded-full border border-[#1cb0f6]/40">
+                  MANUAL ENTRY
+                </span>
+                <h3 className="font-display font-black text-2xl text-white mt-2">
+                  ADD ATHLETE SCORE 🏆
+                </h3>
+              </div>
+
+              <form onSubmit={handleAddPlayerSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-white/70 mb-1">
+                    Player Name:
+                  </label>
+                  <input
+                    type="text"
+                    value={newPlayerName}
+                    onChange={(e) => {
+                      setNewPlayerName(e.target.value);
+                      if (addError) setAddError('');
+                    }}
+                    maxLength={20}
+                    placeholder="e.g. John, Alex..."
+                    className="w-full bg-[#131f24] border-2 border-[#2b3e4a] focus:border-[#1cb0f6] rounded-2xl py-2.5 px-4 text-white font-display font-bold text-base outline-none"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-white/70 mb-1">
+                    Score (PTS):
+                  </label>
+                  <input
+                    type="number"
+                    value={newPlayerScore}
+                    onChange={(e) => {
+                      setNewPlayerScore(e.target.value);
+                      if (addError) setAddError('');
+                    }}
+                    placeholder="e.g. 15000"
+                    className="w-full bg-[#131f24] border-2 border-[#2b3e4a] focus:border-[#ffc800] rounded-2xl py-2.5 px-4 text-white font-display font-bold text-base outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider text-white/70 mb-1">
+                    Select Avatar:
+                  </label>
+                  <div className="flex flex-wrap gap-2 justify-center p-2 bg-[#131f24] rounded-2xl border border-[#2b3e4a]">
+                    {AVATARS.map((av) => (
+                      <button
+                        type="button"
+                        key={av}
+                        onClick={() => setNewPlayerAvatar(av)}
+                        className={`w-8 h-8 rounded-xl text-lg flex items-center justify-center transition-all cursor-pointer ${
+                          newPlayerAvatar === av
+                            ? 'bg-[#1cb0f6] scale-110 border-2 border-white'
+                            : 'bg-white/5 hover:bg-white/10'
+                        }`}
+                      >
+                        {av}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {addError && (
+                  <p className="text-xs text-[#ff4b4b] font-bold text-center">{addError}</p>
+                )}
+
+                <div className="pt-2">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="lg"
+                    fullWidth
+                    icon={<Sparkles size={18} />}
+                  >
+                    ADD TO LEADERBOARD 🏆
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <PlayerNameModal
         isOpen={isNameModalOpen}

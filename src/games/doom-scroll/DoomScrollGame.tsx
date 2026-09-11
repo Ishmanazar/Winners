@@ -13,9 +13,8 @@ export function DoomScrollGame() {
     combo,
     timeRemaining,
     gameConfig,
-    players,
+    leaderboardPlayers,
     tick,
-    updateOpponentScores,
     breakCombo,
     setPaused,
   } = useGameStore();
@@ -24,8 +23,6 @@ export function DoomScrollGame() {
   const [comboBroken, setComboBroken] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const comboTimerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
-  const opponentTimerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
-  const elapsedRef = useRef(0);
 
   // Main game timer
   useEffect(() => {
@@ -33,7 +30,6 @@ export function DoomScrollGame() {
 
     timerRef.current = setInterval(() => {
       tick();
-      elapsedRef.current += 1;
     }, 1000);
 
     return () => {
@@ -62,19 +58,6 @@ export function DoomScrollGame() {
     };
   }, [gameState, breakCombo]);
 
-  // Opponent score simulation
-  useEffect(() => {
-    if (gameState !== GameState.PLAYING) return;
-
-    opponentTimerRef.current = setInterval(() => {
-      updateOpponentScores(elapsedRef.current);
-    }, 2000);
-
-    return () => {
-      if (opponentTimerRef.current) clearInterval(opponentTimerRef.current);
-    };
-  }, [gameState, updateOpponentScores]);
-
   // Handle random events
   const handleRandomEvent = useCallback(
     (event: GameEventType) => {
@@ -95,8 +78,10 @@ export function DoomScrollGame() {
 
   if (gameState !== GameState.PLAYING) return null;
 
+  const totalPlayersCount = Math.max((leaderboardPlayers || []).length, 1);
+
   return (
-    <div className="relative h-[100dvh] bg-doom-bg overflow-hidden">
+    <div className="relative h-[100dvh] bg-[#131f24] overflow-hidden">
       {/* HUD */}
       <DoomScrollHUD
         score={score}
@@ -107,7 +92,7 @@ export function DoomScrollGame() {
         comboBroken={comboBroken}
         timeRemaining={timeRemaining}
         totalTime={gameConfig.duration}
-        totalPlayers={players.length}
+        totalPlayers={totalPlayersCount}
       />
 
       {/* Social Feed */}

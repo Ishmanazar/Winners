@@ -12,7 +12,7 @@ export function ResultsScreen() {
   const {
     score,
     rank,
-    players,
+    leaderboardPlayers,
     totalLikes,
     totalInteractions,
     resetGame,
@@ -24,13 +24,13 @@ export function ResultsScreen() {
   const [animatedScore, setAnimatedScore] = useState(0);
 
   const funnyTitle = FUNNY_TITLES[rank] || 'DOOM SCROLLER';
-  const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
   const isNewRecord = lastGameResult?.isNewHighScore;
   const prevHighScore = lastGameResult?.previousHighScore ?? 0;
+  const displayPlayers = leaderboardPlayers || [];
 
   // Animate score counting up
   useEffect(() => {
-    const duration = 1800;
+    const duration = 1600;
     const start = Date.now();
     const animate = () => {
       const elapsed = Date.now() - start;
@@ -43,7 +43,7 @@ export function ResultsScreen() {
   }, [score]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowConfetti(false), 6000);
+    const timer = setTimeout(() => setShowConfetti(false), 5000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -64,15 +64,15 @@ export function ResultsScreen() {
 
   return (
     <div className="page-viewport relative bg-[#131f24] text-white flex flex-col justify-center items-center py-6 px-4 overflow-y-auto">
-      <ConfettiEffect active={showConfetti} particleCount={120} duration={6000} />
+      <ConfettiEffect active={showConfetti} particleCount={100} duration={5000} />
 
       <div className="w-full max-w-md my-auto">
         {/* Header */}
         <motion.div
           className="text-center mb-4"
-          initial={{ y: -30, opacity: 0 }}
+          initial={{ y: -25, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.15 }}
         >
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#58cc02]/20 border border-[#58cc02]/40 text-[#58cc02] text-[11px] font-black uppercase tracking-widest mb-2">
             <Trophy size={13} /> MATCH COMPLETE
@@ -90,7 +90,7 @@ export function ResultsScreen() {
           className="bg-[#1b2b34] border-2 border-[#2b3e4a] rounded-3xl p-5 sm:p-6 shadow-xl mb-4 text-center relative overflow-hidden"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.25 }}
         >
           {/* Medal */}
           <div className="text-5xl mb-1">
@@ -98,7 +98,7 @@ export function ResultsScreen() {
           </div>
 
           <p className="text-xs uppercase tracking-widest text-white/50 font-black">
-            Match Placement
+            Leaderboard Rank
           </p>
           <h2 className="score-text text-4xl text-[#ffc800] mb-2 font-black">
             #{rank}
@@ -113,7 +113,7 @@ export function ResultsScreen() {
 
           {/* Final Score */}
           <p className="text-xs uppercase tracking-widest text-white/50 font-black">
-            Final Score
+            Match Score
           </p>
           <h3 className="score-text text-4xl text-white font-black mb-3">
             {animatedScore.toLocaleString()}{' '}
@@ -132,7 +132,7 @@ export function ResultsScreen() {
               <span>
                 {prevHighScore > 0
                   ? `NEW ALL-TIME RECORD! (Beat ${prevHighScore.toLocaleString()} PTS)`
-                  : 'FIRST SCORE SAVED TO LEADERBOARD!'}
+                  : 'FIRST SCORE RECORDED ON LEADERBOARD!'}
               </span>
             </motion.div>
           ) : (
@@ -159,37 +159,42 @@ export function ResultsScreen() {
           </div>
         </motion.div>
 
-        {/* Match standings */}
-        <div className="bg-[#1b2b34] border-2 border-[#2b3e4a] rounded-3xl p-3 sm:p-4 mb-4">
-          <p className="text-xs font-black uppercase text-white/60 tracking-wider mb-2 text-center">
-            MATCH STANDINGS
-          </p>
-          <div className="divide-y divide-[#2b3e4a]">
-            {sortedPlayers.map((player, idx) => {
-              const isCurrent = player.isCurrentPlayer;
-              return (
-                <div
-                  key={player.id}
-                  className={`flex items-center justify-between py-2 px-2.5 rounded-xl ${
-                    isCurrent ? 'bg-[#58cc02]/20 font-black' : ''
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 text-xs text-white/50 font-black">#{idx + 1}</span>
-                    <span className="text-lg">{player.avatar}</span>
-                    <span className="text-xs text-white font-bold truncate max-w-[140px]">
-                      {isCurrent ? currentPlayer.name || 'You' : player.name}
-                      {isCurrent && ' (You)'}
+        {/* Real Leaderboard Standings (Real Players Only) */}
+        {displayPlayers.length > 0 && (
+          <div className="bg-[#1b2b34] border-2 border-[#2b3e4a] rounded-3xl p-3 sm:p-4 mb-4">
+            <p className="text-xs font-black uppercase text-white/60 tracking-wider mb-2 text-center">
+              GLOBAL LEADERBOARD STANDINGS
+            </p>
+            <div className="divide-y divide-[#2b3e4a]">
+              {displayPlayers.slice(0, 5).map((player) => {
+                const isCurrent =
+                  currentPlayer.name &&
+                  player.name.trim().toLowerCase() === currentPlayer.name.trim().toLowerCase();
+
+                return (
+                  <div
+                    key={player.id}
+                    className={`flex items-center justify-between py-2 px-2.5 rounded-xl ${
+                      isCurrent ? 'bg-[#58cc02]/20 font-black' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 text-xs text-white/50 font-black">#{player.rank}</span>
+                      <span className="text-lg">{player.avatar}</span>
+                      <span className="text-xs text-white font-bold truncate max-w-[140px]">
+                        {player.name}
+                        {isCurrent && ' (You)'}
+                      </span>
+                    </div>
+                    <span className="score-text text-xs text-[#ffc800] font-black">
+                      {player.score.toLocaleString()} PTS
                     </span>
                   </div>
-                  <span className="score-text text-xs text-[#ffc800] font-black">
-                    {player.score.toLocaleString()} PTS
-                  </span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Actions */}
         <div className="space-y-2">

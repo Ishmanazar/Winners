@@ -1,110 +1,76 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface CountdownProps {
   onComplete: () => void;
 }
 
 const SEQUENCE = [
-  { value: '3', color: 'text-doom-purple' },
-  { value: '2', color: 'text-doom-pink' },
-  { value: '1', color: 'text-doom-blue' },
-  { value: 'DOOM!', color: 'text-doom-gold', isSpecial: true },
+  { value: '3', color: 'text-[#ce82ff]' },
+  { value: '2', color: 'text-[#1cb0f6]' },
+  { value: '1', color: 'text-[#58cc02]' },
+  { value: 'SCROLL! 📱', color: 'text-[#ffc800]', isSpecial: true },
 ];
 
 export function Countdown({ onComplete }: CountdownProps) {
   const [step, setStep] = useState(0);
-  const [particles, setParticles] = useState<
-    { id: number; x: number; y: number; size: number; color: string }[]
-  >([]);
-
-  const createParticles = useCallback(() => {
-    const colors = ['#7c3aed', '#ec4899', '#3b82f6', '#f59e0b', '#10b981'];
-    const newParticles = Array.from({ length: 30 }, (_, i) => ({
-      id: Date.now() + i,
-      x: (Math.random() - 0.5) * 400,
-      y: (Math.random() - 0.5) * 400,
-      size: Math.random() * 12 + 4,
-      color: colors[Math.floor(Math.random() * colors.length)],
-    }));
-    setParticles(newParticles);
-  }, []);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     if (step >= SEQUENCE.length) {
-      onComplete();
+      onCompleteRef.current();
       return;
     }
 
-    const timer = setTimeout(
-      () => {
-        if (step === SEQUENCE.length - 1) {
-          // DOOM! stays longer and creates particles
-          createParticles();
-          setTimeout(() => setStep(step + 1), 1200);
-        } else {
-          setStep(step + 1);
-        }
-      },
-      step === 0 ? 500 : 800
-    );
+    const duration = step === SEQUENCE.length - 1 ? 700 : 650;
+    const timer = setTimeout(() => {
+      if (step + 1 >= SEQUENCE.length) {
+        onCompleteRef.current();
+      } else {
+        setStep((s) => s + 1);
+      }
+    }, duration);
 
     return () => clearTimeout(timer);
-  }, [step, onComplete, createParticles]);
+  }, [step]);
 
-  if (step >= SEQUENCE.length) return null;
-
-  const current = SEQUENCE[step];
+  const current = SEQUENCE[Math.min(step, SEQUENCE.length - 1)];
 
   return (
-    <motion.div
-      className="fixed inset-0 z-[60] bg-doom-bg flex items-center justify-center"
-      initial={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      {/* Background pulse */}
+    <div className="fixed inset-0 z-[60] bg-[#131f24] flex items-center justify-center select-none overflow-hidden">
+      {/* Background glow pulse */}
       <motion.div
         className="absolute inset-0"
         animate={{
           background: [
-            'radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%)',
-            'radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 70%)',
-            'radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%)',
+            'radial-gradient(circle, rgba(88,204,2,0.15) 0%, transparent 70%)',
+            'radial-gradient(circle, rgba(28,176,246,0.2) 0%, transparent 70%)',
+            'radial-gradient(circle, rgba(88,204,2,0.15) 0%, transparent 70%)',
           ],
         }}
-        transition={{ duration: 1, repeat: Infinity }}
+        transition={{ duration: 1.2, repeat: Infinity }}
       />
 
-      {/* Subtle background athlete image */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center">
-        <img
-          src="/assets/thumb-cardio.png"
-          alt=""
-          className="w-72 md:w-96 opacity-[0.06] object-cover blur-[2px] select-none"
-        />
-      </div>
-
-      {/* Main counter */}
+      {/* Main Counter */}
       <AnimatePresence mode="wait">
         <motion.div
           key={step}
-          className={`${current.color} font-display font-black select-none`}
-          initial={{ scale: 3, opacity: 0 }}
+          className={`${current.color} font-display font-black text-center z-10`}
+          initial={{ scale: 2.2, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.5, opacity: 0 }}
+          exit={{ scale: 0.6, opacity: 0 }}
           transition={{
             type: 'spring',
-            stiffness: 300,
-            damping: 15,
-            duration: 0.5,
+            stiffness: 350,
+            damping: 18,
           }}
         >
           <span
             className={`${
               current.isSpecial
-                ? 'text-7xl md:text-9xl tracking-wider'
-                : 'text-8xl md:text-[12rem]'
+                ? 'text-5xl sm:text-7xl md:text-8xl tracking-tight leading-none drop-shadow-[0_0_25px_rgba(255,200,0,0.6)]'
+                : 'text-8xl sm:text-9xl md:text-[11rem] leading-none drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]'
             }`}
           >
             {current.value}
@@ -112,45 +78,14 @@ export function Countdown({ onComplete }: CountdownProps) {
         </motion.div>
       </AnimatePresence>
 
-      {/* Screen shake for DOOM! */}
-      {current.isSpecial && (
-        <motion.div
-          className="absolute inset-0 pointer-events-none"
-          animate={{
-            x: [-5, 5, -3, 3, -1, 0],
-            y: [-3, 3, -5, 2, -1, 0],
-          }}
-          transition={{ duration: 0.5 }}
-        />
-      )}
-
-      {/* Particle burst for DOOM! */}
-      <AnimatePresence>
-        {particles.map((p) => (
-          <motion.div
-            key={p.id}
-            className="absolute rounded-full"
-            style={{
-              width: p.size,
-              height: p.size,
-              backgroundColor: p.color,
-            }}
-            initial={{ x: 0, y: 0, scale: 0, opacity: 1 }}
-            animate={{ x: p.x, y: p.y, scale: 1, opacity: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1, ease: 'easeOut' }}
-          />
-        ))}
-      </AnimatePresence>
-
       {/* Subtitle */}
       <motion.p
-        className="absolute bottom-1/4 text-white/30 font-display text-sm uppercase tracking-[0.3em]"
-        animate={{ opacity: [0.3, 0.6, 0.3] }}
-        transition={{ duration: 2, repeat: Infinity }}
+        className="absolute bottom-1/4 text-white/50 font-display font-black text-xs sm:text-sm uppercase tracking-[0.25em]"
+        animate={{ opacity: [0.4, 0.9, 0.4] }}
+        transition={{ duration: 1.2, repeat: Infinity }}
       >
-        {step < 3 ? 'Prepare your thumbs...' : 'START SCROLLING!'}
+        {step < 3 ? 'WARM UP YOUR THUMBS...' : 'SWIPE RAPIDLY!'}
       </motion.p>
-    </motion.div>
+    </div>
   );
 }
