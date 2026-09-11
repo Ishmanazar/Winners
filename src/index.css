@@ -1,0 +1,245 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Duolingo-inspired bright & premium color palette */
+  --doom-bg: #131f24;
+  --doom-surface: #1b2b33;
+  --doom-purple: #ce82ff;
+  --doom-pink: #ff4b8a;
+  --doom-blue: #1cb0f6;
+  --doom-green: #58cc02;
+  --doom-red: #ff4b4b;
+  --doom-gold: #ffc800;
+  --doom-orange: #ff9600;
+  --doom-yellow: #ffc800;
+  --doom-cyan: #1cb0f6;
+  --vh-full: 100dvh;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  overscroll-behavior: contain;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--doom-bg);
+  color: #ffffff;
+  overflow-x: hidden;
+  min-height: 100dvh;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+/* Custom scrollbar — bright accent */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(19, 31, 36, 0.9);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #58cc02, #1cb0f6, #ce82ff);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #7de424, #49c0f8, #d99eff);
+}
+
+/* Component utilities */
+@layer components {
+  /* Clean glass cards — more minimal, less heavy */
+  .glass {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.3);
+  }
+
+  .glass-vibrant {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 32px -8px rgba(88, 204, 2, 0.15);
+  }
+
+  .glass-strong {
+    background: rgba(27, 43, 51, 0.85);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .glass-dark {
+    background: rgba(19, 31, 36, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Bright Duolingo-style gradients */
+  .text-gradient-doom {
+    background: linear-gradient(135deg, #ff4b4b 0%, #ff4b8a 50%, #ff9600 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-scroll {
+    background: linear-gradient(135deg, #1cb0f6 0%, #49c0f8 50%, #ce82ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-win {
+    background: linear-gradient(135deg, #ffc800 0%, #ff9600 50%, #ff4b4b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-rainbow {
+    background: linear-gradient(90deg, #ff4b4b, #ff9600, #ffc800, #58cc02, #1cb0f6, #ce82ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .arcade-btn {
+    position: relative;
+    background: linear-gradient(135deg, #58cc02 0%, #1cb0f6 50%, #ce82ff 100%);
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+    box-shadow: 0 0 20px rgba(88, 204, 2, 0.4), 0 0 40px rgba(28, 176, 246, 0.2);
+  }
+
+  .arcade-podium-gold {
+    background: linear-gradient(180deg, rgba(255, 200, 0, 0.3) 0%, rgba(255, 150, 0, 0.12) 100%);
+    border: 2px solid rgba(255, 200, 0, 0.5);
+    box-shadow: 0 0 30px rgba(255, 200, 0, 0.25);
+  }
+
+  .arcade-podium-silver {
+    background: linear-gradient(180deg, rgba(28, 176, 246, 0.25) 0%, rgba(148, 163, 184, 0.12) 100%);
+    border: 2px solid rgba(28, 176, 246, 0.5);
+    box-shadow: 0 0 25px rgba(28, 176, 246, 0.2);
+  }
+
+  .arcade-podium-bronze {
+    background: linear-gradient(180deg, rgba(255, 150, 0, 0.25) 0%, rgba(255, 75, 75, 0.12) 100%);
+    border: 2px solid rgba(255, 150, 0, 0.5);
+    box-shadow: 0 0 25px rgba(255, 150, 0, 0.2);
+  }
+
+  .arcade-text {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .score-text {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Hide scrollbar for game feed */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* GPU-accelerated scroll container */
+  .gpu-scroll {
+    will-change: transform;
+    transform: translateZ(0);
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    contain: layout style;
+  }
+
+  /* Single viewport page layout */
+  .page-viewport {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Particle animation base */
+@keyframes particleRise {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) scale(0.5);
+    opacity: 0;
+  }
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(-10px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@keyframes phoneGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(88, 204, 2, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(88, 204, 2, 0.8));
+  }
+}
+
+@keyframes speedLines {
+  0% {
+    transform: translateY(-100%) scaleY(0);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(100%) scaleY(2);
+    opacity: 0;
+  }
+}
