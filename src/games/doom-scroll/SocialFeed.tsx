@@ -11,17 +11,19 @@ interface SocialFeedProps {
 }
 
 export function SocialFeed({ onRandomEvent }: SocialFeedProps) {
-  const [posts, setPosts] = useState<SocialPostType[]>(() => generateInitialFeed(15));
+  // Start with a large initial batch (40 posts) so the user never hits the end immediately
+  const [posts, setPosts] = useState<SocialPostType[]>(() => generateInitialFeed(40));
   const feedRef = useRef<HTMLDivElement>(null);
   const lastScrollPos = useRef(0);
   const scrollAccumulator = useRef(0);
   const rafId = useRef<number>(0);
-  const isScrolling = useRef(false);
+  const isScheduled = useRef(false);
+  const isAppending = useRef(false);
   const { popups, addPopup } = useScorePopups();
 
   const {
     gameState,
-    addScrollPoints,
+    batchScrollPoints,
     addLikePoints,
     addBonusPoints,
     isPaused,
@@ -29,41 +31,49 @@ export function SocialFeed({ onRandomEvent }: SocialFeedProps) {
 
   const isPlaying = gameState === GameState.PLAYING && !isPaused;
 
-  // Throttled scroll handler using requestAnimationFrame
+  // Process scroll physics and batched score updates
   const processScroll = useCallback(() => {
-    if (!feedRef.current || !isPlaying) {
-      isScrolling.current = false;
-      return;
-    }
+    isScheduled.current = false;
+    const el = feedRef.current;
+    if (!el || !isPlaying) return;
 
-    const currentPos = feedRef.current.scrollTop;
+    const currentPos = el.scrollTop;
     const scrollDelta = Math.abs(currentPos - lastScrollPos.current);
     lastScrollPos.current = currentPos;
 
-    scrollAccumulator.current += scrollDelta;
+    if (scrollDelta > 0) {
+      scrollAccumulator.current += scrollDelta;
 
-    // Award scroll points every 50px of scrolling
-    if (scrollAccumulator.current >= 50) {
-      const scrollTicks = Math.floor(scrollAccumulator.current / 50);
-      for (let i = 0; i < scrollTicks; i++) {
-        addScrollPoints();
+      // Batch scroll points every 40px of scrolling in ONE atomic state update
+      const threshold = 40;
+      if (scrollAccumulator.current >= threshold) {
+        const ticks = Math.floor(scrollAccumulator.current / threshold);
+        scrollAccumulator.current = scrollAccumulator.current % threshold;
+        batchScrollPoints(ticks, ticks);
       }
-      scrollAccumulator.current = scrollAccumulator.current % 50;
     }
 
-    // Infinite scroll - load more posts near bottom
-    const { scrollHeight, scrollTop, clientHeight } = feedRef.current;
-    if (scrollHeight - scrollTop - clientHeight < 500) {
-      const newPosts = Array.from({ length: 5 }, () => generatePost());
+    // High lookahead infinite buffer (check 2500px ahead)
+    // This ensures content is generated WAY before the user reaches the bottom
+    const { scrollHeight, scrollTop, clientHeight } = el;
+    const remainingDistance = scrollHeight - scrollTop - clientHeight;
+
+    if (remainingDistance < 2500 && !isAppending.current) {
+      isAppending.current = true;
+      const batchSize = 25;
+      const newPosts = Array.from({ length: batchSize }, () => generatePost());
       setPosts((prev) => [...prev, ...newPosts]);
-    }
 
-    isScrolling.current = false;
-  }, [isPlaying, addScrollPoints]);
+      // Release lock on next frame
+      requestAnimationFrame(() => {
+        isAppending.current = false;
+      });
+    }
+  }, [isPlaying, batchScrollPoints]);
 
   const handleScroll = useCallback(() => {
-    if (!isScrolling.current) {
-      isScrolling.current = true;
+    if (!isScheduled.current) {
+      isScheduled.current = true;
       rafId.current = requestAnimationFrame(processScroll);
     }
   }, [processScroll]);
@@ -71,7 +81,10 @@ export function SocialFeed({ onRandomEvent }: SocialFeedProps) {
   useEffect(() => {
     const el = feedRef.current;
     if (!el) return;
+
+    lastScrollPos.current = el.scrollTop;
     el.addEventListener('scroll', handleScroll, { passive: true });
+
     return () => {
       el.removeEventListener('scroll', handleScroll);
       if (rafId.current) cancelAnimationFrame(rafId.current);
@@ -99,7 +112,6 @@ export function SocialFeed({ onRandomEvent }: SocialFeedProps) {
         }
       }
 
-      // Check for special events
       if (post.eventType !== 'NORMAL') {
         onRandomEvent(post.eventType);
       }
@@ -124,10 +136,15 @@ export function SocialFeed({ onRandomEvent }: SocialFeedProps) {
   );
 
   return (
-    <div className="relative w-full max-w-lg mx-auto pt-[74px] h-[100dvh] flex flex-col">
+    <div className="relative w-full max-w-lg mx-auto pt-[68px] h-[100dvh] flex flex-col">
       <div
         ref={feedRef}
-        className="flex-1 overflow-y-auto hide-scrollbar gpu-scroll pt-4 pb-20 px-4"
+        className="flex-1 overflow-y-auto hide-scrollbar smooth-feed-scroll pt-3 pb-24 px-3 sm:px-4"
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehaviorY: 'contain',
+          scrollBehavior: 'auto',
+        }}
       >
         {posts.map((post) => (
           <SocialPost
@@ -144,8 +161,8 @@ export function SocialFeed({ onRandomEvent }: SocialFeedProps) {
 
       {/* Scroll indicator */}
       {isPlaying && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 pointer-events-none text-white/50 text-xs font-black tracking-widest bg-black/70 px-3 py-1 rounded-full border border-white/20 select-none">
-          ↓ KEEP SCROLLING ↓
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-none text-white/70 text-[11px] font-black tracking-widest bg-[#131f24]/90 px-3.5 py-1.5 rounded-full border-2 border-[#2b3e4a] shadow-lg select-none flex items-center gap-1.5 animate-pulse">
+          <span className="text-[#58cc02]">↓</span> KEEP SCROLLING <span className="text-[#58cc02]">↓</span>
         </div>
       )}
     </div>

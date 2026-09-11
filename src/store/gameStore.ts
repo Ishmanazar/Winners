@@ -42,6 +42,7 @@ interface GameStore {
   // Actions - Scoring
   addPoints: (points: number) => void;
   addScrollPoints: () => void;
+  batchScrollPoints: (ticks: number, distance: number) => void;
   addLikePoints: () => void;
   addBonusPoints: (multiplier: number) => void;
   incrementCombo: () => void;
@@ -351,11 +352,40 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   addScrollPoints: () => {
-    const { score, combo, totalScrollDistance } = get();
-    const points = Math.floor(10 * (combo.isActive ? combo.multiplier : 1));
-    get().incrementCombo();
-    get().addPoints(points);
-    set({ totalScrollDistance: totalScrollDistance + 1 });
+    get().batchScrollPoints(1, 1);
+  },
+
+  batchScrollPoints: (ticks: number, distance: number) => {
+    if (ticks <= 0) return;
+    const { score, combo, gameConfig, leaderboardPlayers, currentPlayer, totalScrollDistance } = get();
+    const now = Date.now();
+    const newCount = combo.count + ticks;
+    const newMultiplier = Math.min(
+      1 + Math.floor(newCount / 5) * 0.5,
+      gameConfig.maxComboMultiplier
+    );
+
+    const basePointsPerTick = 10;
+    const pointsEarned = Math.floor(basePointsPerTick * ticks * (combo.isActive ? combo.multiplier : 1));
+    const newScore = score + pointsEarned;
+
+    // Calculate live rank against real leaderboard players
+    const otherRealPlayers = leaderboardPlayers.filter(
+      (p) => p.name.trim().toLowerCase() !== currentPlayer.name.trim().toLowerCase()
+    );
+    const liveRank = otherRealPlayers.filter((p) => p.score > newScore).length + 1;
+
+    set({
+      score: newScore,
+      rank: liveRank,
+      totalScrollDistance: totalScrollDistance + distance,
+      combo: {
+        count: newCount,
+        multiplier: newMultiplier,
+        lastInteractionTime: now,
+        isActive: true,
+      },
+    });
   },
 
   addLikePoints: () => {

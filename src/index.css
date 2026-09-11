@@ -174,13 +174,24 @@ body {
     display: none;
   }
 
-  /* GPU-accelerated scroll container */
-  .gpu-scroll {
-    will-change: transform;
-    transform: translateZ(0);
+  /* Ultra-smooth infinite feed scroll container */
+  .smooth-feed-scroll {
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
-    contain: layout style;
+    overscroll-behavior-y: contain;
+    scroll-behavior: auto;
+  }
+
+  /* Offscreen layout containment for 60/120fps scrolling */
+  .post-card-contain {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 450px;
+  }
+
+  /* GPU-accelerated container */
+  .gpu-scroll {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
   }
 
   /* Single viewport page layout */
