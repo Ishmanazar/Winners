@@ -28,6 +28,7 @@ export function Home() {
       return;
     }
     navigate('/lobby');
+    navigate('/mode');
   };
 
   const handleNewPlayer = () => {
@@ -44,6 +45,7 @@ export function Home() {
     setIsNameModalOpen(false);
     setPlayerName(name, avatar);
     navigate('/lobby');
+    navigate('/mode');
   };
 
   return (

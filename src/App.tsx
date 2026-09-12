@@ -1,9 +1,20 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Home } from './pages/Home';
 import { Lobby } from './pages/Lobby';
 import { DoomScroll } from './pages/DoomScroll';
 import { LeaderboardPage } from './pages/LeaderboardPage';
+import { ModeSelect } from './pages/ModeSelect';
+import { AuthPage } from './pages/AuthPage';
+import { OfflineLobby } from './pages/OfflineLobby';
+import { OfflinePlay } from './pages/OfflinePlay';
+import { OfflineResults } from './pages/OfflineResults';
+import { OnlineLobby } from './pages/OnlineLobby';
+import { OnlinePlay } from './pages/OnlinePlay';
+import { OnlineResults } from './pages/OnlineResults';
+import { AuthGuard } from './components/auth/AuthGuard';
+import { useAuthStore } from './store/authStore';
 import { ArcadeBackground } from './components/ui/ArcadeBackground';
 import { HumorToast } from './components/ui/HumorToast';
 import { PageTransitionOverlay } from './components/ui/PageTransitionOverlay';
@@ -16,6 +27,7 @@ function AnimatedRoutes() {
       <PageTransitionOverlay key={`trans-${location.pathname}`} />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
+          {/* Home */}
           <Route
             path="/"
             element={
@@ -29,6 +41,126 @@ function AnimatedRoutes() {
               </motion.div>
             }
           />
+
+          {/* Mode Selection */}
+          <Route
+            path="/mode"
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 25 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -25 }}
+                transition={{ duration: 0.35 }}
+              >
+                <ModeSelect />
+              </motion.div>
+            }
+          />
+
+          {/* Authentication */}
+          <Route
+            path="/auth"
+            element={
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.04 }}
+                transition={{ duration: 0.35 }}
+              >
+                <AuthPage />
+              </motion.div>
+            }
+          />
+
+          {/* Offline Mode Routes */}
+          <Route
+            path="/offline/lobby"
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -30 }}
+                transition={{ duration: 0.35 }}
+              >
+                <OfflineLobby />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/offline/play"
+            element={
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
+                transition={{ duration: 0.3 }}
+              >
+                <OfflinePlay />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/offline/results"
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -30 }}
+                transition={{ duration: 0.35 }}
+              >
+                <OfflineResults />
+              </motion.div>
+            }
+          />
+
+          {/* Online Mode Routes (Guarded by AuthGuard) */}
+          <Route
+            path="/online/lobby"
+            element={
+              <AuthGuard>
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -30 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <OnlineLobby />
+                </motion.div>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/online/play"
+            element={
+              <AuthGuard>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.05 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <OnlinePlay />
+                </motion.div>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/online/results"
+            element={
+              <AuthGuard>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <OnlineResults />
+                </motion.div>
+              </AuthGuard>
+            }
+          />
+
+          {/* Legacy Solo / Backward Compatibility */}
           <Route
             path="/lobby"
             element={
@@ -39,19 +171,6 @@ function AnimatedRoutes() {
                 transition={{ duration: 0.35 }}
               >
                 <Lobby />
-              </motion.div>
-            }
-          />
-          <Route
-            path="/leaderboard"
-            element={
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.35 }}
-              >
-                <LeaderboardPage />
               </motion.div>
             }
           />
@@ -68,6 +187,21 @@ function AnimatedRoutes() {
               </motion.div>
             }
           />
+
+          {/* Global & Local Leaderboard */}
+          <Route
+            path="/leaderboard"
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.35 }}
+              >
+                <LeaderboardPage />
+              </motion.div>
+            }
+          />
         </Routes>
       </AnimatePresence>
     </>
@@ -75,6 +209,12 @@ function AnimatedRoutes() {
 }
 
 function App() {
+  const initializeAuth = useAuthStore((state) => state.initialize);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
   return (
     <BrowserRouter>
       {/* Clean Gamified Background */}

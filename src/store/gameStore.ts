@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GameState, DEFAULT_GAME_CONFIG, GameConfig, ComboState } from '../types/game';
+import { GameState, DEFAULT_GAME_CONFIG, GameConfig, ComboState, GameMode } from '../types/game';
 import { Player } from '../types/player';
 import { rankPlayers } from '../data/mockPlayers';
 
@@ -10,11 +10,25 @@ export interface GameResultSummary {
   rank: number;
 }
 
+export interface OfflinePlayer {
+  name: string;
+  avatar: string;
+  score?: number;
+}
+
 interface GameStore {
   // Game state
   gameState: GameState;
   gameConfig: GameConfig;
   timeRemaining: number;
+
+  // Mode & Duration
+  gameMode: GameMode;
+  gameDuration: number;
+
+  // Offline multiplayer
+  offlinePlayers: OfflinePlayer[];
+  currentOfflinePlayerIndex: number;
 
   // Player state
   currentPlayer: Player;
@@ -38,6 +52,15 @@ interface GameStore {
   endGame: () => void;
   tick: () => void;
   resetGame: () => void;
+
+  // Actions - Mode & Duration
+  setGameMode: (mode: GameMode) => void;
+  setGameDuration: (duration: number) => void;
+
+  // Actions - Offline multiplayer
+  setOfflinePlayers: (players: OfflinePlayer[]) => void;
+  nextOfflinePlayer: () => boolean; // returns false if all players have played
+  getOfflineResults: () => OfflinePlayer[];
 
   // Actions - Scoring
   addPoints: (points: number) => void;
@@ -235,6 +258,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   gameState: GameState.IDLE,
   gameConfig: DEFAULT_GAME_CONFIG,
   timeRemaining: DEFAULT_GAME_CONFIG.duration,
+  gameMode: 'offline' as GameMode,
+  gameDuration: DEFAULT_GAME_CONFIG.duration,
+  offlinePlayers: [],
+  currentOfflinePlayerIndex: 0,
   currentPlayer: initialPlayer,
   leaderboardPlayers: initialLeaderboard,
   lastGameResult: null,
@@ -250,7 +277,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setGameState: (state) => set({ gameState: state }),
 
   startGame: () => {
-    const { gameConfig, leaderboardPlayers, currentPlayer } = get();
+    const { gameDuration, leaderboardPlayers, currentPlayer } = get();
     // Calculate live rank against real players on the leaderboard
     const otherRealPlayers = leaderboardPlayers.filter(
       (p) => p.name.trim().toLowerCase() !== currentPlayer.name.trim().toLowerCase()
@@ -259,7 +286,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     set({
       gameState: GameState.PLAYING,
-      timeRemaining: gameConfig.duration,
+      timeRemaining: gameDuration,
       score: 0,
       combo: { ...initialCombo },
       rank: initialRank,
@@ -515,6 +542,65 @@ export const useGameStore = create<GameStore>((set, get) => ({
   clearLeaderboard: () => {
     saveLeaderboard([]);
     set({ leaderboardPlayers: [] });
+  },
+
+  // Mode & Duration
+  setGameMode: (mode) => set({ gameMode: mode }),
+
+  setGameDuration: (duration) => set({ gameDuration: duration }),
+
+  // Offline multiplayer
+  setOfflinePlayers: (players) => set({ offlinePlayers: players, currentOfflinePlayerIndex: 0 }),
+
+  nextOfflinePlayer: () => {
+    const { offlinePlayers, currentOfflinePlayerIndex, score } = get();
+
+    // Save current player's score
+    const updatedPlayers = [...offlinePlayers];
+    if (updatedPlayers[currentOfflinePlayerIndex]) {
+      updatedPlayers[currentOfflinePlayerIndex] = {
+        ...updatedPlayers[currentOfflinePlayerIndex],
+        score,
+      };
+    }
+
+    const nextIndex = currentOfflinePlayerIndex + 1;
+    const hasMore = nextIndex < offlinePlayers.length;
+
+    if (hasMore) {
+      // Set up next player
+      const nextPlayer = offlinePlayers[nextIndex];
+      set({
+        offlinePlayers: updatedPlayers,
+        currentOfflinePlayerIndex: nextIndex,
+        currentPlayer: {
+          id: `offline-${nextIndex}`,
+          name: nextPlayer.name,
+          score: 0,
+          rank: 1,
+          avatar: nextPlayer.avatar,
+          isCurrentPlayer: true,
+        },
+        gameState: GameState.IDLE,
+        score: 0,
+        combo: { ...initialCombo },
+        rank: 1,
+        totalScrollDistance: 0,
+        totalLikes: 0,
+        totalInteractions: 0,
+        lastGameResult: null,
+        isPaused: false,
+      });
+    } else {
+      set({ offlinePlayers: updatedPlayers });
+    }
+
+    return hasMore;
+  },
+
+  getOfflineResults: () => {
+    const { offlinePlayers } = get();
+    return [...offlinePlayers].sort((a, b) => (b.score || 0) - (a.score || 0));
   },
 
   // Misc

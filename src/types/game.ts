@@ -6,6 +6,23 @@ export enum GameState {
   FINISHED = 'FINISHED',
 }
 
+export type GameMode = 'offline' | 'online';
+
+export interface DurationOption {
+  value: number;
+  label: string;
+  emoji: string;
+  description: string;
+}
+
+export const DURATION_OPTIONS: DurationOption[] = [
+  { value: 15, label: '15s', emoji: '⚡', description: 'Lightning Round' },
+  { value: 30, label: '30s', emoji: '🎯', description: 'Classic Sprint' },
+  { value: 45, label: '45s', emoji: '🔥', description: 'Extended Battle' },
+  { value: 60, label: '60s', emoji: '💪', description: 'Endurance Run' },
+  { value: 90, label: '90s', emoji: '🏆', description: 'Marathon Mode' },
+];
+
 export interface GameConfig {
   duration: number; // seconds
   scrollPoints: number;
