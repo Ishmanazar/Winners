@@ -184,8 +184,7 @@ body {
 
   /* Offscreen layout containment for 60/120fps scrolling */
   .post-card-contain {
-    content-visibility: auto;
-    contain-intrinsic-size: 0 450px;
+    contain: layout paint;
   }
 
   /* GPU-accelerated container */

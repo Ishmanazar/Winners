@@ -5,7 +5,11 @@ import { DoomScrollHUD } from './DoomScrollHUD';
 import { SocialFeed } from './SocialFeed';
 import { RandomEventOverlay } from './RandomEventOverlay';
 
-export function DoomScrollGame() {
+interface DoomScrollGameProps {
+  topOffset?: number;
+}
+
+export function DoomScrollGame({ topOffset = 0 }: DoomScrollGameProps) {
   const {
     gameState,
     score,
@@ -76,12 +80,29 @@ export function DoomScrollGame() {
     setCurrentEvent(null);
   }, [currentEvent, setPaused]);
 
+  // Lock document/body scrolling on mobile so only the inner game feed scrolls
+  useEffect(() => {
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyTouchAction = document.body.style.touchAction;
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.touchAction = prevBodyTouchAction;
+    };
+  }, []);
+
   if (gameState !== GameState.PLAYING) return null;
 
   const totalPlayersCount = Math.max((leaderboardPlayers || []).length, 1);
 
   return (
-    <div className="relative h-[100dvh] bg-[#131f24] overflow-hidden">
+    <div className="fixed inset-0 h-[100dvh] w-full bg-[#131f24] overflow-hidden select-none">
       {/* HUD */}
       <DoomScrollHUD
         score={score}
@@ -93,10 +114,11 @@ export function DoomScrollGame() {
         timeRemaining={timeRemaining}
         totalTime={gameConfig.duration}
         totalPlayers={totalPlayersCount}
+        topOffset={topOffset}
       />
 
       {/* Social Feed */}
-      <SocialFeed onRandomEvent={handleRandomEvent} />
+      <SocialFeed onRandomEvent={handleRandomEvent} topOffset={topOffset} />
 
       {/* Random Event Overlay */}
       <RandomEventOverlay event={currentEvent} onDismiss={handleDismissEvent} />

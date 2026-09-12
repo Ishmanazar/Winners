@@ -17,6 +17,14 @@ export const ASSET_IMAGES: string[] = [
   heroAsset,      // Doom scroll hero banner
 ];
 
+// Preload all asset images immediately in browser
+if (typeof window !== 'undefined') {
+  ASSET_IMAGES.forEach((src) => {
+    const img = new Image();
+    img.src = src;
+  });
+}
+
 const USERNAMES = [
   'doom_scroller_69',
   'infinite.feed',

@@ -124,18 +124,25 @@ export function OfflinePlay() {
   // Name of the upcoming player when hasMore is true
   const nextPlayer = offlinePlayers[currentOfflinePlayerIndex];
 
-  return (
-    <div className="offline-play-wrapper relative h-[100dvh] w-full overflow-hidden bg-[#131f24] flex flex-col text-white select-none">
-      {/* CSS adjustments to ensure DoomScrollHUD perfectly aligns under our top banner */}
-      <style>{`
-        .offline-play-wrapper .fixed.top-0 {
-          top: 42px !important;
-        }
-        .offline-play-wrapper .pt-\\[68px\\] {
-          padding-top: 110px !important;
-        }
-      `}</style>
+  // Lock document/body scrolling on mobile
+  useEffect(() => {
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyTouchAction = document.body.style.touchAction;
 
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.touchAction = prevBodyTouchAction;
+    };
+  }, []);
+
+  return (
+    <div className="offline-play-wrapper fixed inset-0 h-[100dvh] w-full overflow-hidden bg-[#131f24] flex flex-col text-white select-none">
       {/* Top Banner: PLAYER X's TURN: [name] [avatar] */}
       <div className="fixed top-0 left-0 right-0 h-[42px] z-[70] bg-[#1b2b34] border-b-2 border-[#2b3e4a] px-3 sm:px-4 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-2 min-w-0">
@@ -159,7 +166,7 @@ export function OfflinePlay() {
 
       {/* Flow Stage 3: Mount DoomScrollGame when countdown completes */}
       {!showCountdown && !roundResult && (
-        <DoomScrollGame />
+        <DoomScrollGame topOffset={42} />
       )}
 
       {/* Flow Stage 4: Mini Results Card when round finishes */}

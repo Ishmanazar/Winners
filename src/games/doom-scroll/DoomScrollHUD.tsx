@@ -13,6 +13,7 @@ interface DoomScrollHUDProps {
   timeRemaining: number;
   totalTime: number;
   totalPlayers: number;
+  topOffset?: number;
 }
 
 export function DoomScrollHUD({
@@ -25,15 +26,19 @@ export function DoomScrollHUD({
   timeRemaining,
   totalTime,
   totalPlayers,
+  topOffset = 0,
 }: DoomScrollHUDProps) {
   return (
-    <motion.div
-      className="fixed top-0 left-0 right-0 z-50 bg-[#131f24]/95 backdrop-blur-md border-b-2 border-[#2b3e4a] shadow-[0_8px_30px_rgba(0,0,0,0.8)]"
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ type: 'spring', stiffness: 250, damping: 20 }}
+    <div
+      className="fixed left-0 right-0 z-50 bg-[#131f24]/95 backdrop-blur-md border-b-2 border-[#2b3e4a] shadow-[0_8px_30px_rgba(0,0,0,0.8)]"
+      style={{ top: topOffset }}
     >
-      <div className="max-w-2xl mx-auto px-4 py-2">
+      <motion.div
+        className="max-w-2xl mx-auto px-4 py-2"
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 250, damping: 20 }}
+      >
         <div className="flex items-center justify-between gap-2">
           {/* Score */}
           <div className="flex flex-col items-start min-w-[75px]">
@@ -88,7 +93,7 @@ export function DoomScrollHUD({
             <GameTimer timeRemaining={timeRemaining} totalTime={totalTime} />
           </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </div>
   );
 }

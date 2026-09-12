@@ -8,9 +8,10 @@ import { useScorePopups, ScorePopupContainer } from '../../components/ui/ScorePo
 
 interface SocialFeedProps {
   onRandomEvent: (event: GameEventType) => void;
+  topOffset?: number;
 }
 
-export function SocialFeed({ onRandomEvent }: SocialFeedProps) {
+export function SocialFeed({ onRandomEvent, topOffset = 0 }: SocialFeedProps) {
   // Start with a large initial batch (40 posts) so the user never hits the end immediately
   const [posts, setPosts] = useState<SocialPostType[]>(() => generateInitialFeed(40));
   const feedRef = useRef<HTMLDivElement>(null);
@@ -136,7 +137,10 @@ export function SocialFeed({ onRandomEvent }: SocialFeedProps) {
   );
 
   return (
-    <div className="relative w-full max-w-lg mx-auto pt-[68px] h-[100dvh] flex flex-col">
+    <div
+      className="relative w-full max-w-lg mx-auto h-[100dvh] flex flex-col"
+      style={{ paddingTop: `${68 + topOffset}px` }}
+    >
       <div
         ref={feedRef}
         className="flex-1 overflow-y-auto hide-scrollbar smooth-feed-scroll pt-3 pb-24 px-3 sm:px-4"
