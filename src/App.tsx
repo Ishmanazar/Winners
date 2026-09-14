@@ -5,7 +5,7 @@ import { Home } from './pages/Home';
 import { Lobby } from './pages/Lobby';
 import { DoomScroll } from './pages/DoomScroll';
 import { LeaderboardPage } from './pages/LeaderboardPage';
-import { ModeSelect } from './pages/ModeSelect';
+
 import { AuthPage } from './pages/AuthPage';
 import { OfflineLobby } from './pages/OfflineLobby';
 import { OfflinePlay } from './pages/OfflinePlay';
@@ -42,20 +42,7 @@ function AnimatedRoutes() {
             }
           />
 
-          {/* Mode Selection */}
-          <Route
-            path="/mode"
-            element={
-              <motion.div
-                initial={{ opacity: 0, y: 25 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -25 }}
-                transition={{ duration: 0.35 }}
-              >
-                <ModeSelect />
-              </motion.div>
-            }
-          />
+
 
           {/* Authentication */}
           <Route

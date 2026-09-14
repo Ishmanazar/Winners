@@ -120,7 +120,7 @@ export function OnlineLobby() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1b2b34] hover:bg-[#253945] text-white/70 hover:text-white border border-[#2b3e4a] text-xs font-display font-black uppercase tracking-wider transition-all cursor-pointer"
             >
               <ArrowLeft size={14} />
-              <span>MODE SELECT</span>
+              <span>HOME</span>
             </button>
 
             <button

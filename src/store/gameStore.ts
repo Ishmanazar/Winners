@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GameState, DEFAULT_GAME_CONFIG, GameConfig, ComboState, GameMode } from '../types/game';
+import { GameState, DEFAULT_GAME_CONFIG, GameConfig, ComboState, GameMode, OfflineSubMode } from '../types/game';
 import { Player } from '../types/player';
 import { rankPlayers } from '../data/mockPlayers';
 
@@ -24,7 +24,11 @@ interface GameStore {
 
   // Mode & Duration
   gameMode: GameMode;
+  offlineSubMode: OfflineSubMode;
   gameDuration: number;
+
+  // Solo high score
+  soloHighScore: number;
 
   // Offline multiplayer
   offlinePlayers: OfflinePlayer[];
@@ -55,7 +59,12 @@ interface GameStore {
 
   // Actions - Mode & Duration
   setGameMode: (mode: GameMode) => void;
+  setOfflineSubMode: (mode: OfflineSubMode) => void;
   setGameDuration: (duration: number) => void;
+
+  // Actions - Solo high score
+  getSoloHighScore: () => number;
+  setSoloHighScore: (score: number) => void;
 
   // Actions - Offline multiplayer
   setOfflinePlayers: (players: OfflinePlayer[]) => void;
@@ -259,7 +268,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   gameConfig: DEFAULT_GAME_CONFIG,
   timeRemaining: DEFAULT_GAME_CONFIG.duration,
   gameMode: 'offline' as GameMode,
+  offlineSubMode: 'single' as OfflineSubMode,
   gameDuration: DEFAULT_GAME_CONFIG.duration,
+  soloHighScore: (() => { try { return parseInt(localStorage.getItem('doom_solo_highscore') || '0', 10) || 0; } catch { return 0; } })(),
   offlinePlayers: [],
   currentOfflinePlayerIndex: 0,
   currentPlayer: initialPlayer,
@@ -548,6 +559,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setGameMode: (mode) => set({ gameMode: mode }),
 
   setGameDuration: (duration) => set({ gameDuration: duration }),
+
+  setOfflineSubMode: (mode) => set({ offlineSubMode: mode }),
+
+  getSoloHighScore: () => {
+    return get().soloHighScore;
+  },
+
+  setSoloHighScore: (score) => {
+    try {
+      localStorage.setItem('doom_solo_highscore', String(score));
+    } catch (e) {}
+    set({ soloHighScore: score });
+  },
 
   // Offline multiplayer
   setOfflinePlayers: (players) => set({ offlinePlayers: players, currentOfflinePlayerIndex: 0 }),

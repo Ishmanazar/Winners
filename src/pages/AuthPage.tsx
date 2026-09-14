@@ -131,11 +131,11 @@ export function AuthPage() {
           {/* Back Button to /mode */}
           <div className="w-full flex justify-start mb-4">
             <button
-              onClick={() => navigate('/mode')}
+              onClick={() => navigate('/')}
               className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#1b2b34] hover:bg-[#233742] border-2 border-[#2b3e4a] hover:border-[#1cb0f6] text-white/70 hover:text-white text-xs font-display font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm active:translate-y-0.5"
             >
               <ArrowLeft size={16} />
-              <span>BACK TO MODES</span>
+              <span>BACK TO HOME</span>
             </button>
           </div>
 

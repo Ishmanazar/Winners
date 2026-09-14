@@ -7,6 +7,7 @@ export enum GameState {
 }
 
 export type GameMode = 'offline' | 'online';
+export type OfflineSubMode = 'single' | 'team';
 
 export interface DurationOption {
   value: number;
